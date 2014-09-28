@@ -1,0 +1,14 @@
+# Compiled object files
+*.o
+*.a
+*.so
+
+#Folders
+_obj
+_test
+
+*.exe
+*.test
+*.prof
+
+
