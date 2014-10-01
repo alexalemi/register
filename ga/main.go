@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
-	/* "time" */)
+	"math"
+	"time"
+)
 
 type Command int
 type Register int
@@ -37,34 +39,6 @@ type Expectation struct {
 }
 type Recipe []Expectation
 
-type ScoreCard struct {
-	Len        int
-	Correct    int
-	AllCorrect bool
-	Steps      int
-	TimeOut    bool
-}
-
-func (s ScoreCard) Score() float64 {
-	score := 0.0
-	score += float64(s.Len)
-	score += float64(s.Steps)
-	score -= 100 * float64(s.Correct)
-	if s.AllCorrect {
-		score -= 10000.0
-	}
-	if s.TimeOut {
-		score += 10000.0
-	}
-	return score
-}
-
-type Organism struct {
-	Prog      Program
-	ScoreCard ScoreCard
-	Score     float64
-}
-
 type output struct {
 	world World
 	steps int
@@ -97,31 +71,63 @@ loop:
 	return output{w, steps}
 }
 
-var p Program = Program{0: Instruction{inst: DEC, reg: 0, next: 1, jump: 2}, 1: Instruction{inst: INC, reg: 1, next: 0}}
+// Run runs a world on the given initial condition
+func (p Program) RunExp(w World) (o output, timeout bool) {
+	ochan := make(chan output, 1)
+	var out output
+	go func() { ochan <- p.Run(w) }()
+	select {
+	case o := <-ochan:
+		out = o
+	case <-time.After(TimeOut * time.Second):
+		timeout = true
+	}
+	return out, timeout
+}
 
-var w2 World = World{0: 10, 1: 5}
-var w1 World = World{0: 10}
+func ComputeScore(exp World, out output, timeout bool) float64 {
+	s := 0.0
+	if timeout {
+		s += 1e5
+	}
+	s += float64(out.steps)
+	for i, v := range exp {
+		s += 100.0 * float64(math.Abs(float64(v)-float64(out.world[i])))
+	}
+	return s
+}
+
+type scoretup struct {
+	exp     World
+	out     output
+	timeout bool
+}
+
+// Score scores a program
+func (p Program) Score(r Recipe) float64 {
+	N := len(r)
+	reschan := make(chan scoretup, N+1)
+
+	for _, exp := range r {
+		go func() {
+			o, t := p.RunExp(exp.in)
+			reschan <- scoretup{exp.out, o, t}
+		}()
+	}
+
+	score := 0.0
+	for _ = range r {
+        res := <-reschan
+		score += ComputeScore(res.exp, res.out, res.timeout)
+	}
+
+	return score
+}
 
 func main() {
 	fmt.Println("test")
 
-	for _, e := range r {
-		o := p0.Run(e.in)
-		fmt.Println("Input:", e.in)
-		fmt.Println("output:", o)
-		if o.world == e.out {
-			fmt.Println("MATCH")
-		} else {
-			fmt.Println("NO MATCH")
-		}
-	}
-	/* ochan := make(chan output, 1) */
-	/* go func() { ochan <- p.Run(w1) }() */
-	/* select { */
-	/* case o := <-ochan: */
-	/* 	fmt.Println("got output:", o) */
-	/* case <-time.After(TimeOut * time.Second): */
-	/* 	fmt.Println("BAD NEWS") */
-	/* } */
+    a := p0.Score(recipe)
+    fmt.Println(a)
 
 }

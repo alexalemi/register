@@ -126,7 +126,7 @@ var p0 Program = Program{
 	// overflow
 	112: Instruction{inst: INC, reg: 15, next: 127},
 }
-var r Recipe = Recipe{
+var recipe Recipe = Recipe{
 	Expectation{World{0: 0},
 		World{1: 1, 2: 1, 3: 1, 4: 1, 7: 1, 10: 1, 13: 1, 14: 1, 15: 1, 12: 1, 9: 1, 6: 1}},
 	Expectation{World{0: 1},
