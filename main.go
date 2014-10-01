@@ -11,79 +11,58 @@ import (
 	"text/scanner"
 )
 
-type Instruction int
+type Instruction struct {
+	name  string
+	nreg  int
+	njump int
+}
 
-var Seperator rune = ':'
+func (i Instruction) String() string {
+	return i.name
+}
 
 const (
-	UNK Instruction = iota
-	INC
-	DEB
-	END
+	symComment  = "//"
+	symLabelSep = ":"
+	symInstSep  = ";"
+	symStateSep = "|"
+	symInclude  = "#include"
+	symRun      = "#run"
+	symNew      = "inst"
+	symDone     = "done"
 )
 
 type Label string
 type Register string
 
 type Statement struct {
-	Label  Label
-	Inst   Instruction
-	Reg    Register
-	Next   Label
-	Branch Label
+	Label   Label
+	Inst    Instruction
+	Regs    []Register
+	Jumps   []Label
+	Comment string
 }
 
-func (i Instruction) String() (s string) {
-	switch i {
-	case INC:
-		s = "+"
-	case DEB:
-		s = "-"
-	case END:
-		s = "◼"
-	case UNK:
-		s = "?"
+func (s Statement) String() string {
+	if s.Comment != nil {
+		return fmt.Sprintf("[%v:%v %v; %v //%v]", s.Label, s.Inst, s.Regs, s.Jumps, s.Comment)
 	}
-	return
-}
-
-func (s Statement) String() (r string) {
-	switch s.Inst {
-	case INC:
-		r = fmt.Sprintf("[%v:%v(%v)→%v]", s.Label, s.Inst, s.Reg, s.Next)
-	case DEB:
-		r = fmt.Sprintf("[%v:%v(%v)→%v↛%v]", s.Label, s.Inst, s.Reg, s.Next, s.Branch)
-	case UNK, END:
-		r = fmt.Sprintf("[%v:%v]", s.Label, s.Inst)
-	}
-	return
+	return fmt.Sprintf("[%v:%v %v; %v]", s.Label, s.Inst, s.Regs, s.Jumps)
 }
 
 type Program map[Label]Statement
 type World map[Register]int
+type Includes []string
 
-func (p Program) String() string {
-	s := ""
-	for key, val := range p {
-		if key != "" && key != "start" && val.Inst != UNK && key != "end" {
-			s += fmt.Sprintf("%v", val)
-		}
-	}
-	return s
+// ProcessFile consumes a file and returns all the includes, the program itself and the world
+// defined by the initial conditions
+func ProcessFile(f File) (i Includes, p Program, w World) {
+
 }
 
-func NewInstruction(s string) (inst Instruction) {
-	switch s {
-	case "deb", "dec", "-":
-		inst = DEB
-	case "inc", "+":
-		inst = INC
-	case "stop", "halt", "end", "◼":
-		inst = END
-	default:
-		inst = UNK
-	}
-	return
+// ProcessLine takes a line and splits it into tokens
+func ProcessLine(line string) {
+
 }
 
 func NewStatement(line string, lineno int) (stmt Statement, ok bool) {
